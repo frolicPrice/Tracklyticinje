@@ -13,7 +13,7 @@ const Notification = {
 export async function generateEmailBody(
   product: EmailProductInfo,
   type: NotificationType
-  ) {
+) {
   const THRESHOLD_PERCENTAGE = 40;
   // Shorten the product title
   const shortenedTitle =
@@ -29,7 +29,7 @@ export async function generateEmailBody(
       subject = `Welcome to Price Tracking for ${shortenedTitle}`;
       body = `
         <div>
-          <h2>Welcome to PriceWise 🚀</h2>
+          <h2>Welcome to FrolicPrice 🚀</h2>
           <p>You are now tracking ${product.title}.</p>
           <p>Here's an example of how you'll receive updates:</p>
           <div style="border: 1px solid #ccc; padding: 10px; background-color: #f8f8f8;">
@@ -81,27 +81,41 @@ export async function generateEmailBody(
 }
 
 const transporter = nodemailer.createTransport({
-  pool: true,
-  service: 'hotmail',
-  port: 2525,
+  service: 'gmail',
   auth: {
-    user: 'javascriptmastery@outlook.com',
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_PASSWORD,
   },
-  maxConnections: 1
-})
+});
 
 export const sendEmail = async (emailContent: EmailContent, sendTo: string[]) => {
-  const mailOptions = {
-    from: 'javascriptmastery@outlook.com',
-    to: sendTo,
-    html: emailContent.body,
-    subject: emailContent.subject,
+  console.log("Email Password:", process.env.GMAIL_PASSWORD);
+
+  // Email validation function using regex
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  // Filter out invalid emails
+  const validEmails = sendTo.filter(email => isValidEmail(email));
+
+  if (validEmails.length === 0) {
+    console.error("No valid email addresses provided. Skipping email sending.");
+    return;
   }
 
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: validEmails,
+    html: emailContent.body,
+    subject: emailContent.subject,
+  };
+
   transporter.sendMail(mailOptions, (error: any, info: any) => {
-    if(error) return console.log(error);
-    
-    console.log('Email sent: ', info);
-  })
-}
+    if (error) {
+      console.error("Error sending email:", error);
+      return;
+    }
+    console.log("Email sent successfully: ", info.response);
+  });
+};
